@@ -16,27 +16,38 @@ namespace SchoolApp.Controllers
             _context = context;
         }
 
-        // GET: Students
-        public async Task<IActionResult> Index()
+        // GET: Students?searchString=maria
+        public async Task<IActionResult> Index(string? searchString)
         {
-            return View(await _context.Student.ToListAsync());
+            var students = from s in _context.Student select s;
+
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                var text = searchString.ToLower();
+
+                students = students.Where(s =>
+                    (s.Name != null && s.Name.ToLower().Contains(text)) ||
+                    (s.StudentNo != null && s.StudentNo.ToLower().Contains(text)) ||
+                    (s.Email != null && s.Email.ToLower().Contains(text))
+                );
+            }
+
+            ViewData["searchString"] = searchString;
+
+            return View(await students.ToListAsync());
         }
 
         // GET: Students/Details/5
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
-            {
                 return NotFound();
-            }
 
             var student = await _context.Student
                 .FirstOrDefaultAsync(m => m.StudentId == id);
 
             if (student == null)
-            {
                 return NotFound();
-            }
 
             return View(student);
         }
@@ -53,7 +64,6 @@ namespace SchoolApp.Controllers
         public async Task<IActionResult> Create(
             [Bind("StudentId,StudentNo,Name,Email,ConfirmEmail,Phone,Age,BirthDate")] Student student)
         {
-            // Is there already a student with this email?
             if (await _context.Student.AnyAsync(s => s.Email == student.Email))
             {
                 ModelState.AddModelError("Email", "This email is already registered.");
@@ -74,16 +84,12 @@ namespace SchoolApp.Controllers
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
-            {
                 return NotFound();
-            }
 
             var student = await _context.Student.FindAsync(id);
 
             if (student == null)
-            {
                 return NotFound();
-            }
 
             return View(student);
         }
@@ -96,11 +102,8 @@ namespace SchoolApp.Controllers
             [Bind("StudentId,StudentNo,Name,Email,ConfirmEmail,Phone,Age,BirthDate")] Student student)
         {
             if (id != student.StudentId)
-            {
                 return NotFound();
-            }
 
-            // Same check, but skip the student being edited
             if (await _context.Student.AnyAsync(s =>
                 s.Email == student.Email &&
                 s.StudentId != student.StudentId))
@@ -118,9 +121,7 @@ namespace SchoolApp.Controllers
                 catch (DbUpdateConcurrencyException)
                 {
                     if (!StudentExists(student.StudentId))
-                    {
                         return NotFound();
-                    }
 
                     throw;
                 }
@@ -135,17 +136,13 @@ namespace SchoolApp.Controllers
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
-            {
                 return NotFound();
-            }
 
             var student = await _context.Student
                 .FirstOrDefaultAsync(m => m.StudentId == id);
 
             if (student == null)
-            {
                 return NotFound();
-            }
 
             return View(student);
         }
